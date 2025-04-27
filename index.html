@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile-Friendly Code Editor</title>
+    <!-- CodeMirror for code editing functionality -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closetag.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/javascript-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/html-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/css-hint.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/hint/show-hint.min.css">
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 10px;
+        }
+        
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            text-align: center;
+        }
+        
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            height: 70vh;
+            margin-bottom: 15px;
+        }
+        
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            background-color: #34495e;
+            padding: 8px;
+            border-radius: 5px 5px 0 0;
+        }
+        
+        select, button {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #ecf0f1;
+            cursor: pointer;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            margin-left: 5px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .CodeMirror {
+            height: 100% !important;
+            border-radius: 0 0 5px 5px;
+            font-size: 14px;
+        }
+        
+        .output-container {
+            background-color: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            height: 25vh;
+            overflow: auto;
+        }
+        
+        .output-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        @media (min-width: 768px) {
+            .container {
+                max-width: 90%;
+                margin: 0 auto;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .editor-container {
+                height: 75vh;
+            }
+            
+            .output-container {
+                height: 20vh;
+            }
+        }
+        
+        /* Mobile keyboard adjustments */
+        .mobile-keyboard-adjust {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            z-index: 1000;
+        }
+        
+        .mobile-keyboard-adjust button {
+            background-color: #27ae60;
+            padding: 10px 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Mobile-Friendly Code Editor</h1>
+        </header>
+        
+        <div class="editor-container">
+            <div class="toolbar">
+                <div>
+                    <select id="language-selector">
+                        <option value="javascript">JavaScript</option>
+                        <option value="htmlmixed">HTML</option>
+                        <option value="css">CSS</option>
+                    </select>
+                    <button id="run-btn">Run Code</button>
+                </div>
+                <button id="clear-btn">Clear</button>
+            </div>
+            <textarea id="editor"></textarea>
+        </div>
+        
+        <div class="output-container">
+            <div class="output-title">Output:</div>
+            <div id="output"></div>
+        </div>
+        
+        <div class="mobile-keyboard-adjust">
+            <button id="adjust-view">Adjust View</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'javascript',
+            theme: 'dracula',
+            lineNumbers: true,
+            autoCloseTags: true,
+            autoCloseBrackets: true,
+            extraKeys: {
+                "Ctrl-Space": "autocomplete",
+                "'<'": function(cm) {
+                    cm.closeTag(cm, '>');
+                },
+                "'/'": function(cm) {
+                    cm.closeTag(cm, '/');
+                }
+            },
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            gutters: ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
+        });
+        
+        // Set initial content
+        editor.setValue(`// Welcome to the mobile-friendly code editor!\n// Try typing 'document.' to see autocomplete\n// The editor will automatically close brackets and tags\n\nfunction hello() {\n  console.log("Hello, world!");\n}\n\nhello();`);
+        
+        // Language selector
+        const languageSelector = document.getElementById('language-selector');
+        languageSelector.addEventListener('change', function() {
+            editor.setOption('mode', this.value);
+        });
+        
+        // Run button
+        const runBtn = document.getElementById('run-btn');
+        const outputDiv = document.getElementById('output');
+        
+        runBtn.addEventListener('click', function() {
+            const code = editor.getValue();
+            outputDiv.innerHTML = '';
+            
+            try {
+                if (languageSelector.value === 'htmlmixed') {
+                    // Create iframe for HTML output
+                    const iframe = document.createElement('iframe');
+                    iframe.style.width = '100%';
+                    iframe.style.height = '100%';
+                    iframe.style.border = 'none';
+                    outputDiv.appendChild(iframe);
+                    
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(code);
+                    iframeDoc.close();
+                } else if (languageSelector.value === 'javascript') {
+                    // Capture console.log output
+                    const originalLog = console.log;
+                    let logOutput = '';
+                    
+                    console.log = function() {
+                        logOutput += Array.from(arguments).join(' ') + '\n';
+                        originalLog.apply(console, arguments);
+                    };
+                    
+                    // Execute JavaScript
+                    eval(code);
+                    
+                    console.log = originalLog;
+                    outputDiv.textContent = logOutput || 'Code executed (no output)';
+                } else if (languageSelector.value === 'css') {
+                    // Create style element for CSS output
+                    const style = document.createElement('style');
+                    style.textContent = code;
+                    outputDiv.innerHTML = '<div id="css-preview">CSS styles applied to this element</div>';
+                    outputDiv.appendChild(style);
+                }
+            } catch (error) {
+                outputDiv.textContent = 'Error: ' + error.message;
+                console.error(error);
+            }
+        });
+        
+        // Clear button
+        const clearBtn = document.getElementById('clear-btn');
+        clearBtn.addEventListener('click', function() {
+            editor.setValue('');
+            outputDiv.innerHTML = '';
+        });
+        
+        // Mobile view adjustment
+        const adjustViewBtn = document.getElementById('adjust-view');
+        adjustViewBtn.addEventListener('click', function() {
+            const editorContainer = document.querySelector('.editor-container');
+            editorContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        
+        // Show autocomplete on certain characters
+        editor.on('change', function(cm, change) {
+            const cursor = cm.getCursor();
+            const line = cm.getLine(cursor.line);
+            const token = cm.getTokenAt(cursor);
+            
+            // Trigger autocomplete after . or <
+            if (change.text[0] === '.' || change.text[0] === '<' || 
+                (change.text.length === 1 && change.text[0].length === 1 && /[\w]/.test(change.text[0]))) {
+                CodeMirror.commands.autocomplete(cm, null, {completeSingle: false});
+            }
+        });
+        
+        // Mobile keyboard adjustments
+        if (/Mobi|Android/i.test(navigator.userAgent)) {
+            // Adjust editor height when virtual keyboard appears
+            window.addEventListener('resize', function() {
+                const viewportHeight = window.innerHeight;
+                const editorHeight = viewportHeight * 0.6;
+                document.querySelector('.editor-container').style.height = `${editorHeight}px`;
+            });
+        }
+    </script>
+</body>
+</html>
